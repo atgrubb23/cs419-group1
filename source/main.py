@@ -2,10 +2,17 @@ import MySQLdb
 import curses
 from curses import wrapper
 
+def get_dbName(list, page, y_pos):
+
+     for x in list:
+	  if x[1] == page and x[2] == y_pos:
+	       return x[0]
+
+     return -1
+
 def db_overview(stdscr, db):
 
-     curses.noecho()
-
+     curses.noecho() #do not display keyboard input
 
      cur_page = 1 #for future pagination implementation
 
@@ -30,8 +37,7 @@ def db_overview(stdscr, db):
 	  k += 1
 	  
 
-     #stdscr.addstr(i + 6, 10, "Select a database by inputting its number and hit ENTER")
-     stdscr.addstr(22, 2, "U - USE    D - DELETE")
+     stdscr.addstr(22, 2, "U - USE    D - DROP    C - CREATE NEW DATABASE        Q - QUIT")
      stdscr.refresh()
 
      #handle key presses
@@ -45,24 +51,32 @@ def db_overview(stdscr, db):
 	  elif input == curses.KEY_DOWN:
 	       stdscr.move(cur_pos[0] + 1, cur_pos[1])
 	  elif chr(input) == "u":
-	       for x in db_list:
-		    if x[1] == cur_page and x[2] == cur_pos[0]:
-			 db_name = x[0]
-			 table_overview(stdscr, db, db_name)
-			 break
-	       break
+	       db_name = get_dbName(db_list, cur_page, cur_pos[0])
+	       table_overview(stdscr, db, db_name)
+	       return
+	  elif chr(input) == "d":
+	       db_name = get_dbName(db_list, cur_page, cur_pos[0])
+	       stdscr.addstr(21, 2, "Are you sure you want to DROP " + db_name + "? (y/n)")
+	       res = stdscr.getch()
+	       if chr(res) == "y":
+		    cursor.execute("DROP DATABASE  " + db_name)
+		    db_overview(stdscr, db)
+		    return
+	       else:
+		    db_overview(stdscr, db)
+		    return
+
+
+	  elif chr(input) == "q":
+	       curses.endwin()
+	       exit()
 	 
-
-     #list_idx = int(stdscr.getstr()) - 1
-     #stdscr.addstr(i + 7, 10, str(list_idx))
-     #db_name = db_list[list_idx]
-
-     #table_overview(stdscr, db, db_name)
      
 
 
 def table_overview(stdscr, db, db_name):
 
+     cur_page = 1 #for future pagination implementation
 
      cursor = db.cursor()
      sql = "USE " + db_name
@@ -77,17 +91,50 @@ def table_overview(stdscr, db, db_name):
      table_list = []
      i = 0
      for x in data:
-	  table_list.append(x[0])
-     for name in table_list:
-	  stdscr.addstr(i + 6, 34, str(i + 1) + " " + name)
+	  #Append 3-tuple: (table name, page, printed line)
+	  table_list.append((x[0], cur_page, i + 6))
 	  i += 1
+     k = 1
+     for y in table_list:
+	  stdscr.addstr(y[2], 34, str(k) + " " + y[0])
+	  k += 1
      
+     stdscr.addstr(22, 2, "V - VIEW    D - DELETE    C - CREATE TABLE    B - BACK    Q - QUIT")
      stdscr.refresh()
+     
+     #handle key presses
+     stdscr.move(6, 34)
+
+     while 1:
+	  input = stdscr.getch()
+	  cur_pos = stdscr.getyx()
+	  if input == curses.KEY_UP:
+	       stdscr.move(cur_pos[0] - 1, cur_pos[1])
+	  elif input == curses.KEY_DOWN:
+	       stdscr.move(cur_pos[0] + 1, cur_pos[1])
+	  elif chr(input) == "v":
+	       #view
+	       temp = 1
+	  elif chr(input) == "d":
+	       #delete
+	       temp = 1
+	  elif chr(input) == "c":
+	       #create
+	       temp = 1
+	  elif chr(input) == "b":
+	       #back
+	       db_overview(stdscr, db)
+	       
+	  elif chr(input) == "q":
+	       #quit
+	       curses.endwin()
+	       exit()
+
+
 
      #stdscr.getch()
      #curses.endwin()
-     
-
+    
 
 
 def main(stdscr):
