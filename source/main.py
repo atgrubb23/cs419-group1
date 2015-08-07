@@ -4,6 +4,11 @@ from curses import wrapper
 
 def db_overview(stdscr, db):
 
+     curses.noecho()
+
+
+     cur_page = 1 #for future pagination implementation
+
      cursor = db.cursor()
      cursor.execute("SHOW DATABASES")
      data = cursor.fetchall()
@@ -15,20 +20,44 @@ def db_overview(stdscr, db):
      db_list = []
      i = 0
      for x in data:
-	  db_list.append(x[0])
-     
-     for name in db_list:
-	  stdscr.addstr(i + 6, 34, str(i + 1) + " " + name)
+	  #Append 3-tuple: (database, page number, y-pos of printed line)
+	  db_list.append((x[0], cur_page, i + 6))
 	  i += 1
+     
+     k = 1
+     for y in db_list:
+	  stdscr.addstr(y[2], 34, str(k) + " " + y[0])
+	  k += 1
+	  
 
-     stdscr.addstr(i + 6, 10, "Select a database by inputting its number and hit ENTER")
+     #stdscr.addstr(i + 6, 10, "Select a database by inputting its number and hit ENTER")
+     stdscr.addstr(22, 2, "U - USE    D - DELETE")
      stdscr.refresh()
 
-     list_idx = int(stdscr.getstr()) - 1
-     stdscr.addstr(i + 7, 10, str(list_idx))
-     db_name = db_list[list_idx]
+     #handle key presses
+     stdscr.move(6, 34)
 
-     table_overview(stdscr, db, db_name)
+     while 1:
+	  input = stdscr.getch()
+	  cur_pos = stdscr.getyx()
+	  if input == curses.KEY_UP:
+	       stdscr.move(cur_pos[0] - 1, cur_pos[1])
+	  elif input == curses.KEY_DOWN:
+	       stdscr.move(cur_pos[0] + 1, cur_pos[1])
+	  elif chr(input) == "u":
+	       for x in db_list:
+		    if x[1] == cur_page and x[2] == cur_pos[0]:
+			 db_name = x[0]
+			 table_overview(stdscr, db, db_name)
+			 break
+	       break
+	 
+
+     #list_idx = int(stdscr.getstr()) - 1
+     #stdscr.addstr(i + 7, 10, str(list_idx))
+     #db_name = db_list[list_idx]
+
+     #table_overview(stdscr, db, db_name)
      
 
 
@@ -88,7 +117,7 @@ def main(stdscr):
 	win.move(5, 18)
 	win.refresh()
 	password_db = win.getstr()
-	hostname_db = "76.103.139.98"
+	hostname_db = "45.49.78.62"
 
 	#db = MySQLdb.connect(host=hostname_db, user=username_db, passwd=password_db, db="cs419db")
 	db = MySQLdb.connect(host=hostname_db, user=username_db, passwd=password_db)
