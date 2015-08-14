@@ -11,6 +11,14 @@ def get_name(list, page, y_pos):
 
      return -1
 
+def get_field(list, page, y_pos):
+
+     for x in list:
+	  if x[1] == page and x[2] == y_pos:
+	       return x[0][0]
+
+     return -1
+
 def draw_list(list, cur_page, window):
 
      k = 1 + (cur_page - 1) * 10
@@ -24,17 +32,26 @@ def draw_list(list, cur_page, window):
 	  window.addstr(13, 0, "-> Next Page")
      window.move(0, 0)
 
-def tableContent_list(list, cur_page, window):
+def draw_tableContent(list, cur_page, window, widths, num_columns):
 
-     k = 1 + (cur_page - 1) * 10
      for y in list:
 	  if y[1] == cur_page:
-		window.addstr(y[2], 0, str(k) + " " + y[0][0] + " " + y[0][1] + " " + str(y[0][2]))
-		k += 1
+	       string = ""
+	       i = 1
+	       for k in y[0]:
+		    if i > num_columns: break
+		    string += str(k)
+		    num_spaces = widths[i-1] - len(str(k))
+		    if i != len(y[0]):
+			 for j in range(num_spaces):
+			      string += " "
+		    i += 1
+
+	       window.addstr(y[2], 0, string)
      if cur_page > 1:
-	  window.addstr(12, 0, "<- Prev Page")
+	  window.addstr(10, 0, "<- Prev Page")
      if cur_page < math.ceil(len(list) / 10.0):
-	  window.addstr(13, 0, "-> Next Page")
+	  window.addstr(11, 0, "-> Next Page")
      window.move(0, 0)
 
 def db_overview(stdscr, db):
@@ -234,40 +251,120 @@ def table_contents(stdscr, db, db_name, table_name):
      cur_page = 1
      page_num = 1
 
+     curses.noecho()
+
      cursor = db.cursor()
      sql = "DESCRIBE " + table_name
      cursor.execute(sql)
-     cursor.execute("SELECT f_name, l_name, gpa FROM " + table_name)
+
+     table_desc = cursor.fetchall()
+
+     var_list = []
+     type_list = []
+     for x in table_desc:
+	  var_list.append(x[0])
+	  type_list.append(x[1])
+
+     #Find lengths of var names
+     #Initialize field_lengths and max_lengths
+     var_lengths = []
+     field_lengths = []
+     max_widths = []
+     for x in var_list:
+	  var_lengths.append(len(x))
+	  field_lengths.append(0)
+	  max_widths.append(0)
+     
+     #Build query
+     query = "SELECT "
+     i = 1
+     for var in var_list:
+	  query += var
+	  if i != len(var_list):
+	       query += ","
+	  query += " "
+	  i += 1
+     query += "FROM " + table_name
+     
+     cursor.execute(query)
      data = cursor.fetchall()
 
      stdscr.clear()
      stdscr.border(0)
      stdscr.addstr(4, 34, "CONTENTS IN " + table_name, curses.A_STANDOUT)
 
+     #test print
+     #stdscr.addstr(1,1, str(table_desc))
+     #stdscr.addstr(2,1, str(var_list))
+     #stdscr.addstr(2,1, str(data))
+     #stdscr.addstr(2,1, str(var_lengths))
+
      contents_list = []
      i = 0
      for x in data:
-	  #Append 3-tuple: (table name, page, printed line)
-	  contents_list.append(([x[0], x[1], x[2]], page_num, i))
+	  fields_list = []
+	  for y in x:
+	       fields_list.append(y)
+	  
+	  #Find max length of fields
+	  j = 0
+	  for field in fields_list:
+	       if len(str(field)) > field_lengths[j]:
+		    field_lengths[j] = len(str(field))
+	       j += 1
+	  
+	  #Append 3-tuple: ([list of fields], page, printed line)
+	  contents_list.append((fields_list, page_num, i))
 	  i += 1
 	  if i == 10:
 	       page_num += 1
 	       i = 0
-     
-     
+    
+
+     for i in range(len(var_list)):
+	  max_widths[i] = max(var_lengths[i], field_lengths[i]) + 1
+
      #10 listings per page
      num_pages = math.ceil(len(contents_list) / 10.0)
 
-     begin_x = 34
-     begin_y = 6
-     height = 15
-     width = 40
+     begin_x = 2
+     begin_y = 7
+     height = 14
+     width = 77
      list_win = curses.newwin(height, width, begin_y, begin_x)
      list_win.keypad(1)
      
-     tableContent_list(contents_list, cur_page, list_win)
-      
-     stdscr.addstr(22, 2, "E - EDIT       B - BACK        Q - QUIT")
+     #Calculate number of columns
+     total_width = 0
+     num_columns = 0
+     j = 1
+     for i in max_widths:
+	  total_width += i
+	  if total_width >= (width - begin_x):
+	       break
+	  num_columns = j
+	  j += 1
+
+     #test print
+     #stdscr.addstr(3,1, str(field_lengths))
+     #stdscr.addstr(4,1, str(max_widths))
+     #stdscr.addstr(5,1, "num_columns=" + str(num_columns))
+     
+     draw_tableContent(contents_list, cur_page, list_win, max_widths, num_columns)
+
+     header = ""
+     i = 1
+     for x in var_list:
+	  if i > num_columns: break
+	  header += x
+	  num_spaces = max_widths[i-1] - len(str(x))
+	  if i != len(var_list):
+	       for j in range(num_spaces):
+		    header += " "
+	  i += 1
+
+     stdscr.addstr(6, 2, header, curses.A_UNDERLINE)
+     stdscr.addstr(22, 2, "A - ADD ROW    E - EDIT    D - DELETE     B - BACK        Q - QUIT")
      stdscr.refresh()
      list_win.refresh()
 	 
@@ -285,15 +382,57 @@ def table_contents(stdscr, db, db_name, table_name):
 	      if cur_page > 1:
 		   cur_page -= 1
 		   list_win.erase()
-		   draw_list(contents_list, cur_page, list_win)
+		   draw_tableContent(contents_list, cur_page, list_win, max_widths, num_columns)
 	  elif input == curses.KEY_RIGHT:
 	      if cur_page < num_pages:
 		   cur_page += 1
 		   list_win.erase()
-		   draw_list(contents_list, cur_page, list_win)
+		   draw_tableContent(contents_list, cur_page, list_win, max_widths, num_columns)
+	  elif input == ord('a'):
+	       #Add row
+	       curses.echo()
+	       query = "INSERT INTO " + table_name + "("
+	       stdscr.addstr(19, 2, "Add Row:")
+	       new_fields = []
+	       i = 1
+	       for x in var_list:
+		    query += x
+		    if i != len(var_list):
+			 query += ", "
+		    stdscr.addstr(20, 2, type_list[i-1] + " " + x + "= ")
+		    new_fields.append(stdscr.getstr())
+		    stdscr.addstr(20, 2, "                                                                   ")
+		    i += 1
+		    #stdscr.addstr(1,1, str(new_fields))
+	       query += ") VALUES ("
+	       i = 1
+	       for x in new_fields:
+		    query += "'" + x + "'"
+		    if i != len(new_fields):
+			 query += ", "
+		    i += 1
+	       query += ")"
+	       #stdscr.addstr(2,1, "query= " + query)
+	       cursor.execute(query)
+	       table_contents(stdscr, db, db_name, table_name)
+	       return
 	  elif input == ord('e'):
-		   #edit
-		   temp=1
+	       #edit
+	       temp=1
+	  elif input == ord('d'): #delete row 
+	       first_field = get_field(contents_list, cur_page, cur_pos[0])
+	       query = "DELETE FROM " + table_name + " WHERE " 
+	       query += var_list[0] + " = " + str(first_field)
+	       query += " LIMIT 1"
+	       stdscr.addstr(21, 2, "Execute " + query + " (y/n)?")
+	       res = stdscr.getch()
+	       if res == ord('y'):
+		    cursor.execute(query)
+		    table_contents(stdscr, db, db_name, table_name)
+		    return
+	       else:
+		    table_contents(stdscr, db, db_name, table_name)
+		    return
 	  elif input == ord('b'):
 		   #back
 		   table_overview(stdscr, db, db_name)
@@ -333,6 +472,7 @@ def main(stdscr):
 	username_db = win.getstr()
 	win.move(5, 18)
 	win.refresh()
+	curses.noecho()
 	password_db = win.getstr()
 	hostname_db = "45.49.78.62"
 
