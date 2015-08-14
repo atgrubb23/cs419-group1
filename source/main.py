@@ -159,6 +159,7 @@ def create_table(stdscr, db, db_name):
 	col_names = []
 	data_types = []
 	data_type_sizes = []
+	options = []
 
 	while 1:
 		curses.noecho()
@@ -185,9 +186,12 @@ def create_table(stdscr, db, db_name):
 			stdscr.refresh()
 			stdscr.move(19, 15)
 			data_type_sizes.append(stdscr.getstr())
+			stdscr.addstr(19, 2, "Options (NULL/NOT NULL/AUTO_INCREMENT): ")
+			stdscr.refresh()
+			options.append(stdscr.getstr())
 			stdscr.addstr(19, 2, "                                                                    ")
 			#update view with added column
-			stdscr.addstr(y_offset, x_offset, "COL" + str(count + 1) + ": " + col_names[count] + " " + data_types[count] + "(" + data_type_sizes[count] + ")")
+			stdscr.addstr(y_offset, x_offset, "COL" + str(count + 1) + ": " + col_names[count] + " " + data_types[count] + "(" + data_type_sizes[count] + ") " + options[count])
 			stdscr.refresh()
 			stdscr.move(19, 15)
 
@@ -202,6 +206,8 @@ def create_table(stdscr, db, db_name):
 				for i in range(0, len(col_names)):
 					query += str(col_names[i]) + " " + str(data_types[i])
 					query += "(" + str(data_type_sizes[i]) + ")"
+					if len(options[i]) > 0:
+						query += " " + options[i]
 					if len(col_names) > 1 and i != len(col_names) - 1:
 						query += ","
 				#if primary key not set, prompt user
