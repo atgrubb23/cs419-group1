@@ -8,25 +8,42 @@ def create_table(stdscr, db, cursor, db_name):
 	#Create outer screen with title
 	stdscr.clear()
 	stdscr.border(0)
-	stdscr.addstr(4, 34, "CREATE NEW TABLE", curses.A_STANDOUT)
+	stdscr.addstr(1, 34, "CREATE NEW TABLE", curses.A_STANDOUT)
 	stdscr.refresh()
 
 	#Create inner window for entry of database name
 	begin_x = 22
-	begin_y = 8
-	height = 10
+	begin_y = 2
+	height = 20
 	width = 40
 	win = curses.newwin(height, width, begin_y, begin_x)
 	win.border(0)
-	win.addstr(6, 8, "NAME: ")
-	win.addstr(7, 8, "COLUMN 1: ")
-	win.move(6, 18)
+	win.addstr(1, 8, "NAME: ")
+	win.addstr(2, 8, "COL 1: ")
+	win.move(1, 18)
 	win.refresh()
 
-	tb_name = win.getstr()
-	query = 'CREATE TABLE ' + tb_name
-	query += '( foo VARCHAR(50) DEFAULT NULL ) ENGINE=InnoDb;'
-	cursor.execute(query)
+	#Get initial input for name and mandatory column 1
+	table_name = win.getstr()
+	win.move(2, 18)
+	column = win.getstr()
+
+	while 1:
+		col_input_y = 3
+		col_num = 2
+		input = win.getch()
+		if chr(input) == "a":
+			win.addstr(col_input_y, 8, "COL " + str(col_num) + ": ")
+			win.move(col_input_y, 18)
+			win.refresh()
+			col_input_y += 1
+			col_num += 1
+	 	else:
+	 		break
+
+	#query = 'CREATE TABLE ' + tb_name
+	#query += '( foo VARCHAR(50) DEFAULT NULL ) ENGINE=InnoDb;'
+	#cursor.execute(query)
 
 	table_overview(stdscr, db, db_name)
 
