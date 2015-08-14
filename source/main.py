@@ -98,6 +98,7 @@ def create_user(stdscr):
 			cursor.execute(query)
 
 	main(stdscr)
+	return
 
 def create_db(stdscr, db):
 	#Allow user to see typed text
@@ -133,6 +134,7 @@ def create_db(stdscr, db):
 
 	#Navigate back to database overview
 	db_overview(stdscr, db)
+	return
 
 def create_table(stdscr, db, db_name):
 	#Allow user to see typed text
@@ -630,7 +632,7 @@ def main(stdscr):
 	curses.echo()
 	stdscr.border(0)
 
-	stdscr.addstr(4, 34, "[INSERT TITLE]", curses.A_STANDOUT)
+	stdscr.addstr(4, 22, "CS419 Group 1 Curses-Based MySQL Manager", curses.A_STANDOUT)
 	stdscr.addstr(22, 2, "N - NEW USER")
 
 	begin_x = 22
