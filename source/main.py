@@ -2,6 +2,35 @@ import MySQLdb
 import curses
 from curses import wrapper
 
+def create_table(stdscr, db, cursor, db_name):
+	curses.echo()
+
+	#Create outer screen with title
+	stdscr.clear()
+	stdscr.border(0)
+	stdscr.addstr(4, 34, "CREATE NEW TABLE", curses.A_STANDOUT)
+	stdscr.refresh()
+
+	#Create inner window for entry of database name
+	begin_x = 22
+	begin_y = 8
+	height = 10
+	width = 40
+	win = curses.newwin(height, width, begin_y, begin_x)
+	win.border(0)
+	win.addstr(6, 8, "NAME: ")
+	win.addstr(7, 8, "COLUMN 1: ")
+	win.move(6, 18)
+	win.refresh()
+
+	tb_name = win.getstr()
+	query = 'CREATE TABLE ' + tb_name
+	query += '( foo VARCHAR(50) DEFAULT NULL ) ENGINE=InnoDb;'
+	cursor.execute(query)
+
+	table_overview(stdscr, db, db_name)
+
+
 def create_db(stdscr, db):
 	#Allow user to see typed text
 	curses.echo()
@@ -107,6 +136,7 @@ def table_overview(stdscr, db, db_name):
      stdscr.clear()
      stdscr.border(0)
      stdscr.addstr(4, 34, "TABLES IN " + db_name, curses.A_STANDOUT)
+     stdscr.addstr(22, 2, "N - NEW")
 
      table_list = []
      i = 0
@@ -117,7 +147,11 @@ def table_overview(stdscr, db, db_name):
 	  i += 1
      
      stdscr.refresh()
-
+     while 1:
+     	userInput = stdscr.getch()
+     	if chr(userInput) == "n":
+     		create_table(stdscr, db, cursor, db_name)
+     
      #stdscr.getch()
      #curses.endwin()
      
