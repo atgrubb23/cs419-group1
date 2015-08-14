@@ -139,14 +139,16 @@ def create_table(stdscr, db, db_name):
 	curses.echo()
 
 	#Create outer screen with title
+	y_offset = 4
+	x_offset = 16
+	count = -1
 	stdscr.clear()
 	stdscr.border(0)
 	stdscr.addstr(1, 34, "CREATE NEW TABLE", curses.A_STANDOUT)
 	stdscr.addstr(22, 2, "A - Add Column    E - Execute    B - BACK        Q - QUIT")
-	stdscr.addstr(4, 16, "NAME: ")
+	stdscr.addstr(y_offset, x_offset, "NAME: ")
 	stdscr.refresh()
 	stdscr.move(4, 22)
-
 	table_name = stdscr.getstr()
 	stdscr.move(19, 15)
 	primary_key_used = False
@@ -161,6 +163,8 @@ def create_table(stdscr, db, db_name):
 		input = stdscr.getch()
 
 		if input == ord('a'):
+			count += 1
+			y_offset += 1
 			curses.echo()
 			stdscr.refresh()
 			#store strings for column to be made
@@ -179,9 +183,12 @@ def create_table(stdscr, db, db_name):
 			stdscr.refresh()
 			stdscr.move(19, 15)
 			data_type_sizes.append(stdscr.getstr())
-			stdscr.addstr(19, 2, "                                                                   ")
+			stdscr.addstr(19, 2, "                                                                    ")
+			#update view with added column
+			stdscr.addstr(y_offset, x_offset, "COL" + str(count + 1) + ": " + col_names[count] + " " + data_types[count] + "(" + data_type_sizes[count] + ")")
 			stdscr.refresh()
 			stdscr.move(19, 15)
+
 
 		elif input == ord('e'):
 			if len(col_names) == 0:
@@ -195,8 +202,20 @@ def create_table(stdscr, db, db_name):
 					query += "(" + str(data_type_sizes[i]) + ")"
 					if len(col_names) > 1 and i != len(col_names) - 1:
 						query += ","
+				#if primary key not set, prompt user
+				if primary_key_used == False:
+					stdscr.addstr(19, 2, "Would you like to add a primary key to your table? (y/n)")
+					stdscr.refresh()
+					res = stdscr.getch()
+					if res == ord('y'):
+						stdscr.addstr(19, 2, "                                                            ")
+						stdscr.refresh()
+						curses.echo()
+						stdscr.addstr(19, 2, "Enter the column number (1 - " + str(len(col_names)) + "): ")
+						stdscr.refresh()
+						primary_key_index = stdscr.getstr()
+						query += ", PRIMARY KEY (" + str(col_names[0]) + ")"
 				query += ")ENGINE=INNODB;"
-
 				#execute query
 				cursor = db.cursor()
 				cursor.execute(query)
