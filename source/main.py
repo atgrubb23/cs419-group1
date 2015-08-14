@@ -54,6 +54,41 @@ def draw_tableContent(list, cur_page, window, widths, num_columns):
 	  window.addstr(11, 0, "-> Next Page")
      window.move(0, 0)
 
+def create_db(stdscr, db):
+	#Allow user to see typed text
+	curses.echo()
+
+	#Create outer screen with title
+	stdscr.clear()
+	stdscr.border(0)
+	stdscr.addstr(4, 34, "CREATE NEW DATABASE", curses.A_STANDOUT)
+	stdscr.refresh()
+
+	#Create inner window for entry of database name
+	begin_x = 22
+	begin_y = 8
+	height = 10
+	width = 40
+	win = curses.newwin(height, width, begin_y, begin_x)
+	win.border(0)
+	win.addstr(4, 8, "NAME: ")
+	win.move(4, 18)
+	win.refresh()
+
+	#Get user input for database name
+	db_name = win.getstr()
+	stdscr.addstr(20, 2, "Are you sure you want to add " + db_name + "? (y/n)")
+	stdscr.refresh()
+	curses.noecho()
+	res = win.getch()
+	if res == ord('y'):
+		#Create new database
+		cursor = db.cursor()
+		cursor.execute('CREATE DATABASE ' + db_name + ';')
+
+	#Navigate back to database overview
+	db_overview(stdscr, db)
+
 def db_overview(stdscr, db):
 
      curses.noecho() #do not display keyboard input
@@ -137,8 +172,9 @@ def db_overview(stdscr, db):
 	       else:
 		    db_overview(stdscr, db)
 		    return
-
-
+	  elif input == ord('c'): 
+	       create_db(stdscr, db)
+	       return	
 	  elif input == ord('q'): 
 	       curses.endwin()
 	       exit()
