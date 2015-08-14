@@ -54,6 +54,51 @@ def draw_tableContent(list, cur_page, window, widths, num_columns):
 	  window.addstr(11, 0, "-> Next Page")
      window.move(0, 0)
 
+def create_user(stdscr):
+	#Allow user to see typed text
+	curses.echo()
+
+	#Create outer screen with title
+	stdscr.clear()
+	stdscr.border(0)
+	stdscr.addstr(4, 34, "CREATE NEW USER", curses.A_STANDOUT)
+	stdscr.refresh()
+
+	#Create inner window for entry of database name
+	begin_x = 22
+	begin_y = 8
+	height = 10
+	width = 40
+	win = curses.newwin(height, width, begin_y, begin_x)
+	win.border(0)
+	win.addstr(4, 12, "NAME: ")
+	win.addstr(6, 8, "PASSWORD: ")
+	win.move(4, 18)
+	win.refresh()
+
+	username = win.getstr()
+	win.move(6, 18)
+	win.refresh()
+	password = win.getstr()
+	stdscr.addstr(20, 2, "Are you sure you want to add " + username + "? (y/n)")
+	curses.noecho()
+	stdscr.refresh()
+	res = win.getch()
+	if res == ord('y'):
+		#login to db as an admin user1
+		hostname_db = "45.49.78.62"
+		db = MySQLdb.connect(host=hostname_db, user="user1", passwd="password1")
+		if db.cursor():
+			cursor = db.cursor()
+			#add user
+			query = "CREATE USER \'" + str(username) + "\'@\'%\' IDENTIFIED BY \'" + str(password) + "\';"
+			cursor.execute(query)
+			#set permissions for new user
+			query = "GRANT ALL PRIVILEGES ON * . * TO \'" + str(username) + "\'@\'%\';"
+			cursor.execute(query)
+
+	main(stdscr)
+
 def create_db(stdscr, db):
 	#Allow user to see typed text
 	curses.echo()
@@ -89,6 +134,48 @@ def create_db(stdscr, db):
 	#Navigate back to database overview
 	db_overview(stdscr, db)
 
+def create_table(stdscr, db, cursor):
+	#Allow user to see typed text
+	curses.echo()
+
+	#Create outer screen with title
+	stdscr.clear()
+	stdscr.border(0)
+	stdscr.addstr(2, 34, "CREATE NEW TABLE", curses.A_STANDOUT)
+	stdscr.addstr(4, 16, "NAME: ")
+	stdscr.move(4, 23)
+	stdscr.refresh()
+
+	"""
+	elif input == ord('a'):
+	       #Add row
+	       curses.echo()
+	       query = "INSERT INTO " + table_name + "("
+	       stdscr.addstr(19, 2, "Add Row:")
+	       new_fields = []
+	       i = 1
+	       for x in var_list:
+		    query += x
+		    if i != len(var_list):
+			 query += ", "
+		    stdscr.addstr(20, 2, type_list[i-1] + " " + x + "= ")
+		    new_fields.append(stdscr.getstr())
+		    stdscr.addstr(20, 2, "                                                                   ")
+		    i += 1
+		    #stdscr.addstr(1,1, str(new_fields))
+	       query += ") VALUES ("
+	       i = 1
+	       for x in new_fields:
+		    query += "'" + x + "'"
+		    if i != len(new_fields):
+			 query += ", "
+		    i += 1
+	       query += ")"
+	       #stdscr.addstr(2,1, "query= " + query)
+	       cursor.execute(query)
+	       table_contents(stdscr, db, db_name, table_name)
+	       return
+	       """
 def db_overview(stdscr, db):
 
      curses.noecho() #do not display keyboard input
@@ -267,8 +354,7 @@ def table_overview(stdscr, db, db_name):
 		    table_overview(stdscr, db, db_name)
 		    return
 	  elif input == ord('c'): 
-	       #create
-	       temp = 1
+	       create_table(stdscr, db, cursor)
 	  elif input == ord('b'):
 	       #back
 	       db_overview(stdscr, db)
@@ -485,10 +571,12 @@ def table_contents(stdscr, db, db_name, table_name):
 def main(stdscr):
 
 	stdscr = curses.initscr()
+	stdscr.clear()
 	curses.echo()
 	stdscr.border(0)
 
 	stdscr.addstr(4, 34, "[INSERT TITLE]", curses.A_STANDOUT)
+	stdscr.addstr(22, 2, "N - NEW USER")
 
 	begin_x = 22
 	begin_y = 8
@@ -505,7 +593,10 @@ def main(stdscr):
 	stdscr.refresh()
 	win.refresh()
 
-	username_db = win.getstr()
+	res = win.getch()
+	if res == ord('n'):
+		create_user(stdscr)
+	username_db = chr(res) + win.getstr()
 	win.move(5, 18)
 	win.refresh()
 	curses.noecho()
