@@ -626,7 +626,6 @@ def table_contents(stdscr, db, db_name, table_name):
 	  
 
 def main(stdscr):
-
 	stdscr = curses.initscr()
 	stdscr.clear()
 	curses.echo()
