@@ -134,48 +134,83 @@ def create_db(stdscr, db):
 	#Navigate back to database overview
 	db_overview(stdscr, db)
 
-def create_table(stdscr, db, cursor):
+def create_table(stdscr, db, db_name):
 	#Allow user to see typed text
 	curses.echo()
 
 	#Create outer screen with title
 	stdscr.clear()
 	stdscr.border(0)
-	stdscr.addstr(2, 34, "CREATE NEW TABLE", curses.A_STANDOUT)
+	stdscr.addstr(1, 34, "CREATE NEW TABLE", curses.A_STANDOUT)
+	stdscr.addstr(22, 2, "A - Add Column    E - Execute    B - BACK        Q - QUIT")
 	stdscr.addstr(4, 16, "NAME: ")
-	stdscr.move(4, 23)
 	stdscr.refresh()
+	stdscr.move(4, 22)
 
-	"""
-	elif input == ord('a'):
-	       #Add row
-	       curses.echo()
-	       query = "INSERT INTO " + table_name + "("
-	       stdscr.addstr(19, 2, "Add Row:")
-	       new_fields = []
-	       i = 1
-	       for x in var_list:
-		    query += x
-		    if i != len(var_list):
-			 query += ", "
-		    stdscr.addstr(20, 2, type_list[i-1] + " " + x + "= ")
-		    new_fields.append(stdscr.getstr())
-		    stdscr.addstr(20, 2, "                                                                   ")
-		    i += 1
-		    #stdscr.addstr(1,1, str(new_fields))
-	       query += ") VALUES ("
-	       i = 1
-	       for x in new_fields:
-		    query += "'" + x + "'"
-		    if i != len(new_fields):
-			 query += ", "
-		    i += 1
-	       query += ")"
-	       #stdscr.addstr(2,1, "query= " + query)
-	       cursor.execute(query)
-	       table_contents(stdscr, db, db_name, table_name)
-	       return
-	       """
+	table_name = stdscr.getstr()
+	stdscr.move(19, 15)
+	primary_key_used = False
+
+	
+	col_names = []
+	data_types = []
+	data_type_sizes = []
+
+	while 1:
+		curses.noecho()
+		input = stdscr.getch()
+
+		if input == ord('a'):
+			curses.echo()
+			stdscr.refresh()
+			#store strings for column to be made
+			stdscr.addstr(19, 14, "                                                                   ")
+			stdscr.addstr(19, 2, "Column Name:")
+			stdscr.refresh()
+			stdscr.move(19, 15)
+			col_names.append(stdscr.getstr())
+			stdscr.addstr(19, 2, "  Data Type:")
+			stdscr.addstr(19, 14, "                                                                   ")
+			stdscr.refresh()
+			stdscr.move(19, 15)
+			data_types.append(stdscr.getstr())
+			stdscr.addstr(19, 2, "  Data Size:")
+			stdscr.addstr(19, 14, "                                                                   ")
+			stdscr.refresh()
+			stdscr.move(19, 15)
+			data_type_sizes.append(stdscr.getstr())
+			stdscr.addstr(19, 2, "                                                                   ")
+			stdscr.refresh()
+			stdscr.move(19, 15)
+
+		elif input == ord('e'):
+			if len(col_names) == 0:
+				stdscr.addstr(19, 2, "ERROR: Invalid query a table must contain at least one column.")
+				stdscr.refresh()
+			else:
+				#build query	
+				query = "CREATE TABLE " + table_name + "("
+				for i in range(0, len(col_names)):
+					query += str(col_names[i]) + " " + str(data_types[i])
+					query += "(" + str(data_type_sizes[i]) + ")"
+					if len(col_names) > 1 and i != len(col_names) - 1:
+						query += ","
+				query += ")ENGINE=INNODB;"
+
+				#execute query
+				cursor = db.cursor()
+				cursor.execute(query)
+				table_overview(stdscr, db, db_name)
+				return
+
+		elif input == ord('b'):
+			table_overview(stdscr, db, db_name)
+			return
+
+		elif input == ord('q'): 
+			curses.endwin()
+			exit()
+	
 def db_overview(stdscr, db):
 
      curses.noecho() #do not display keyboard input
@@ -259,7 +294,7 @@ def db_overview(stdscr, db):
 	       else:
 		    db_overview(stdscr, db)
 		    return
-	  elif input == ord('c'): 
+	  elif input == ord('c'):
 	       create_db(stdscr, db)
 	       return	
 	  elif input == ord('q'): 
@@ -354,7 +389,8 @@ def table_overview(stdscr, db, db_name):
 		    table_overview(stdscr, db, db_name)
 		    return
 	  elif input == ord('c'): 
-	       create_table(stdscr, db, cursor)
+	       create_table(stdscr, db, db_name)
+	       return
 	  elif input == ord('b'):
 	       #back
 	       db_overview(stdscr, db)
