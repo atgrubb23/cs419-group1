@@ -24,6 +24,19 @@ def draw_list(list, cur_page, window):
 	  window.addstr(13, 0, "-> Next Page")
      window.move(0, 0)
 
+def tableContent_list(list, cur_page, window):
+
+     k = 1 + (cur_page - 1) * 10
+     for y in list:
+	  if y[1] == cur_page:
+		window.addstr(y[2], 0, str(k) + " " + y[0][0] + " " + y[0][1] + " " + str(y[0][2]))
+		k += 1
+     if cur_page > 1:
+	  window.addstr(12, 0, "<- Prev Page")
+     if cur_page < math.ceil(len(list) / 10.0):
+	  window.addstr(13, 0, "-> Next Page")
+     window.move(0, 0)
+
 def db_overview(stdscr, db):
 
      curses.noecho() #do not display keyboard input
@@ -186,7 +199,9 @@ def table_overview(stdscr, db, db_name):
 	       
 	  elif input == ord('v'):
 	       #view
-	       temp = 1
+	       table_name = get_name(table_list, cur_page, cur_pos[0])
+	       table_contents(stdscr, db, db_name, table_name)
+	       return
 	  elif input == ord('d'): #delete table 
 	       table_name = get_name(table_list, cur_page, cur_pos[0])
 	       stdscr.addstr(21, 2, "Are you sure you want to DROP " + table_name + "? (y/n)")
@@ -214,9 +229,83 @@ def table_overview(stdscr, db, db_name):
 	  list_win.refresh()
 
 
+def table_contents(stdscr, db, db_name, table_name):
 
-    
+     cur_page = 1
+     page_num = 1
 
+     cursor = db.cursor()
+     sql = "DESCRIBE " + table_name
+     cursor.execute(sql)
+     cursor.execute("SELECT f_name, l_name, gpa FROM " + table_name)
+     data = cursor.fetchall()
+
+     stdscr.clear()
+     stdscr.border(0)
+     stdscr.addstr(4, 34, "CONTENTS IN " + table_name, curses.A_STANDOUT)
+
+     contents_list = []
+     i = 0
+     for x in data:
+	  #Append 3-tuple: (table name, page, printed line)
+	  contents_list.append(([x[0], x[1], x[2]], page_num, i))
+	  i += 1
+	  if i == 10:
+	       page_num += 1
+	       i = 0
+     
+     
+     #10 listings per page
+     num_pages = math.ceil(len(contents_list) / 10.0)
+
+     begin_x = 34
+     begin_y = 6
+     height = 15
+     width = 40
+     list_win = curses.newwin(height, width, begin_y, begin_x)
+     list_win.keypad(1)
+     
+     tableContent_list(contents_list, cur_page, list_win)
+      
+     stdscr.addstr(22, 2, "E - EDIT       B - BACK        Q - QUIT")
+     stdscr.refresh()
+     list_win.refresh()
+	 
+     while 1:
+	  input = list_win.getch()
+	  cur_pos = list_win.getyx()
+	  
+	  if input == curses.KEY_UP:
+	      if cur_pos[0] > 0:
+		   list_win.move(cur_pos[0] - 1, cur_pos[1])
+	  elif input == curses.KEY_DOWN:
+	      if cur_pos[0] < 9 and cur_pos[0] < (len(contents_list) - (cur_page - 1) * 10) - 1:
+		   list_win.move(cur_pos[0] + 1, cur_pos[1])
+	  elif input == curses.KEY_LEFT:
+	      if cur_page > 1:
+		   cur_page -= 1
+		   list_win.erase()
+		   draw_list(contents_list, cur_page, list_win)
+	  elif input == curses.KEY_RIGHT:
+	      if cur_page < num_pages:
+		   cur_page += 1
+		   list_win.erase()
+		   draw_list(contents_list, cur_page, list_win)
+	  elif input == ord('e'):
+		   #edit
+		   temp=1
+	  elif input == ord('b'):
+		   #back
+		   table_overview(stdscr, db, db_name)
+
+	  elif input == ord('q'):
+	       #quit
+	       curses.endwin()
+	       exit()
+			
+	  stdscr.refresh()
+	  list_win.refresh()
+	  
 
 def main(stdscr):
 
