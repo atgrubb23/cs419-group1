@@ -2,6 +2,37 @@ import MySQLdb
 import curses
 from curses import wrapper
 
+def create_db(stdscr, db):
+	#Allow user to see typed text
+	curses.echo()
+
+	#Create outer screen with title
+	stdscr.clear()
+	stdscr.border(0)
+	stdscr.addstr(4, 34, "CREATE NEW DATABASE", curses.A_STANDOUT)
+	stdscr.refresh()
+
+	#Create inner window for entry of database name
+	begin_x = 22
+	begin_y = 8
+	height = 10
+	width = 40
+	win = curses.newwin(height, width, begin_y, begin_x)
+	win.border(0)
+	win.addstr(6, 8, "NAME: ")
+	win.move(6, 18)
+	win.refresh()
+
+	#Get user input for database name
+	db_name = win.getstr()
+	cursor = db.cursor()
+
+	#Create new database
+	cursor.execute('CREATE DATABASE ' + db_name + ';')
+
+	#Navigate back to database overview
+	db_overview(stdscr, db)
+
 def db_overview(stdscr, db):
 
      curses.noecho()
@@ -31,7 +62,7 @@ def db_overview(stdscr, db):
 	  
 
      #stdscr.addstr(i + 6, 10, "Select a database by inputting its number and hit ENTER")
-     stdscr.addstr(22, 2, "U - USE    D - DELETE")
+     stdscr.addstr(22, 2, "U - USE    D - DELETE    N - NEW")
      stdscr.refresh()
 
      #handle key presses
@@ -51,6 +82,9 @@ def db_overview(stdscr, db):
 			 table_overview(stdscr, db, db_name)
 			 break
 	       break
+	  elif chr(input) == "n":
+	  	create_db(stdscr, db)
+	  	break
 	 
 
      #list_idx = int(stdscr.getstr()) - 1
