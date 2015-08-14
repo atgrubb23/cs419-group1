@@ -241,6 +241,7 @@ def create_table(stdscr, db, db_name):
 def db_overview(stdscr, db):
 
      curses.noecho() #do not display keyboard input
+     curses.curs_set(1)
 
      cur_page = 1 
      page_num = 1
@@ -597,22 +598,46 @@ def table_contents(stdscr, db, db_name, table_name):
 			 query += ", "
 		    i += 1
 	       query += ")"
-	       #stdscr.addstr(2,1, "query= " + query)
+	       stdscr.addstr(2,1, "query= " + query)
 	       cursor.execute(query)
+	       db.commit()
 	       table_contents(stdscr, db, db_name, table_name)
 	       return
 	  elif input == ord('e'):
 	       #edit
-	       temp=1
+	       curses.echo()
+	       query = "UPDATE " + table_name + " SET "
+	       stdscr.addstr(19, 2, "Update Row:")
+	       new_fields = []
+	       i = 1
+	       for x in var_list:
+		    query += x + "="
+		    stdscr.addstr(20, 2, type_list[i-1] + " " + x + "= ")
+		    query += "'" + stdscr.getstr() + "'"
+		    if i != len(var_list):
+			 query += ", "
+		    stdscr.addstr(20, 2, "                                                                   ")
+		    i += 1
+		    #stdscr.addstr(1,1, str(new_fields))
+	       
+	       first_field = get_field(contents_list, cur_page, cur_pos[0])
+	       
+	       query += " WHERE " + var_list[0] + " = '" + str(first_field) + "'"
+	       #stdscr.addstr(2,1, "query= " + query)
+	       cursor.execute(query)
+	       db.commit()
+	       table_contents(stdscr, db, db_name, table_name)
+	       return
 	  elif input == ord('d'): #delete row 
 	       first_field = get_field(contents_list, cur_page, cur_pos[0])
 	       query = "DELETE FROM " + table_name + " WHERE " 
-	       query += var_list[0] + " = " + str(first_field)
+	       query += var_list[0] + " =  '" + str(first_field) + "'"
 	       query += " LIMIT 1"
 	       stdscr.addstr(21, 2, "Execute " + query + " (y/n)?")
 	       res = stdscr.getch()
 	       if res == ord('y'):
 		    cursor.execute(query)
+		    db.commit()
 		    table_contents(stdscr, db, db_name, table_name)
 		    return
 	       else:
@@ -634,11 +659,28 @@ def table_contents(stdscr, db, db_name, table_name):
 def main(stdscr):
 	stdscr = curses.initscr()
 	stdscr.clear()
-	curses.echo()
+	curses.noecho()
+	curses.curs_set(0)
 	stdscr.border(0)
 
 	stdscr.addstr(4, 22, "CS419 Group 1 Curses-Based MySQL Manager", curses.A_STANDOUT)
-	stdscr.addstr(22, 2, "N - NEW USER")
+	stdscr.addstr(22, 2, "E - EXISTING USER    N - NEW USER")
+	stdscr.addstr(12, 28, "EXISTING USER or NEW USER?")
+
+
+	res = None
+	while 1:
+	     res = stdscr.getch()
+	     if res == ord('e'):
+		  stdscr.addstr(22, 2, "                                 ")
+		  curses.echo()
+		  curses.curs_set(1)
+		  break
+	     if res == ord('n'):
+		  curses.curs_set(1)
+		  create_user(stdscr)
+		  return
+
 
 	begin_x = 22
 	begin_y = 8
@@ -655,14 +697,12 @@ def main(stdscr):
 	stdscr.refresh()
 	win.refresh()
 
-	res = win.getch()
-	if res == ord('n'):
-		create_user(stdscr)
-	username_db = chr(res) + win.getstr()
+	username_db = win.getstr()
 	win.move(5, 18)
 	win.refresh()
 	curses.noecho()
 	password_db = win.getstr()
+	curses.curs_set(0)
 	hostname_db = "45.49.78.62"
 
 	db = MySQLdb.connect(host=hostname_db, user=username_db, passwd=password_db)
